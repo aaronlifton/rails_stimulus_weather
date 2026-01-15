@@ -5,7 +5,7 @@ class ForecastService
     def get_forecast(zipcode)
       # try cache first
       cached_data = Rails.cache.read("forecast/#{zipcode}")
-      return cached_data if cached_data.present?
+      return cached_data.merge({cached: true}) if cached_data.present?
 
       WeatherApi.new.get_weather(zipcode)
     end

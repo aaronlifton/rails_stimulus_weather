@@ -1,12 +1,18 @@
 class ForecastsController < ApplicationController
   def index
-    zipcode = index_params[:zipcode]
-    if !zipcode.present?
-      return render(json: {error: "zip_code parameter is required"}, status: :bad_request)
-    end
+    respond_to do |format|
+      format.html { render }
+      format.json do
+        zipcode = index_params[:zipcode]
+        unless zipcode.present?
+          render(json: {error: "zip_code parameter is required", code: :missing_zip_code}, status: :bad_request)
+          next
+        end
 
-    forecast = ForecastService.get_forecast(zipcode)
-    render(json: forecast.to_json, status: :ok)
+        forecast = ForecastService.get_forecast(zipcode)
+        render(json: forecast, status: :ok)
+      end
+    end
   end
 
   private

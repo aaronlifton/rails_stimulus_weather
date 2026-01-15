@@ -1,7 +1,7 @@
 require "spec_helper"
 
 RSpec.describe ForecastsController, type: :request do
-  subject(:perform_request) { get("/forecasts") }
+  subject(:perform_request) { get("/forecasts", as: :json) }
   let(:memory_store) { ActiveSupport::Cache.lookup_store(:memory_store) }
 
   let(:headers) {
@@ -49,7 +49,7 @@ RSpec.describe ForecastsController, type: :request do
   end
 
   context("when zipcode is present") do
-    subject(:perform_request) { get("/forecasts?zipcode=33760") }
+    subject(:perform_request) { get("/forecasts?zipcode=33760", as: :json) }
 
     before do
       allow(Rails.application.credentials).to(receive(:open_weather_map_api_key).and_return(api_key))

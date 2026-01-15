@@ -5,14 +5,14 @@ class WeatherApi
   format :json
 
   WEATHER_PATH = "/data/2.5/weather"
-  GEOLOCATION_PATH = "/geo/1.0/zip"
-  DAILY_PATH = "forecast/daily?lat={lat}&lon={lon}&cnt={cnt}&appid={API key}"
+  GEOLOCATION_ZIPCODE_PATH = "/geo/1.0/zip"
+  GEOLOCATION_ADDRESS_PATH = "/geo/1.0/direct"
+  FORECAST_PATH = "/data/2.5/forecast"
+  # ZIP_WEATHER_PATH = "https://api.openweathermap.org/data/2.5/forecast?zip=33760&cnt=1&appid=fde37e00edc68468e2a4aea09ef24777"
 
   DEFAULT_UNIT = "imperial"
   DEFAULT_EXCLUDE = "minutely,hourly,alerts"
-  DEFAULT_PARAMS = {appid: @api_key}.freeze
   DEFAULT_HEADERS = {"Content-Type" => "application/json"}.freeze
-  DEFALT_CNT = 1
 
   class Error < StandardError
   end
@@ -38,14 +38,13 @@ class WeatherApi
       low_temp = current_weather["temp_min"]
       high_temp = current_weather["temp_max"]
 
-      # {temperature: 292.17, low_temperature: 290.99, high_temperature: 293.25}
       weather_data = {
         temperature_current: current_temp,
         temperature_low: low_temp,
         temperature_high: high_temp
       }
 
-      Rails.cache.write("forecast/#{zipcode}", weather_data)
+      Rails.cache.write("forecast/#{zipcode}", weather_data, {expires_in: 60 * 30})
       weather_data
     else
       handle_api_error(response, "Error fetching weather data")
@@ -56,7 +55,7 @@ class WeatherApi
     response = self
       .class
       .get(
-        GEOLOCATION_PATH,
+        GEOLOCATION_ZIPCODE_PATH,
         query: {zip: zipcode, appid: @api_key},
         headers: DEFAULT_HEADERS
       )
@@ -67,6 +66,45 @@ class WeatherApi
       handle_api_error(response, "Error fetching geolocation data")
     end
   end
+
+  def generate_lat_long(address)
+    # ?q={city name},{state code},{country code}&limit={limit}&appid={API key}
+    response = self
+      .class
+      .get(
+        GEOLOCATION_ADDRESS_PATH,
+        query: {q: address, limit: 1, appid: @api_key},
+        headers: DEFAULT_HEADERS
+      )
+    debugger
+    if response.code == 200
+      data = response.parsed_response
+      [data["lat"], data["lon"]]
+    else
+      handle_api_error(response, "Error fetching geolocation data")
+    end
+  end
+
+  # def get_daily_weather(zipcode)
+  #   response = self
+  #     .class
+  #     .get(
+  #       FORECAST_PATH,
+  #       query: {zip: zipcode, units: DEFAULT_UNIT, cnt: DEFAULT_CNT, appid: @api_key},
+  #       headers: DEFAULT_HEADERS
+  #     )
+  #   if response.code == 200
+  #     data = response.parsed_response
+  #     today = data["list"].first
+  #     weather_data = today["main"]
+  #
+  #     {
+  #       temp: weather_data["temp"]
+  #     }
+  #   else
+  #     handle_api_error(response, "Error fetching geolocation data")
+  #   end
+  # end
 
   private
 
