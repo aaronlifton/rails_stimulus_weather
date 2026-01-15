@@ -109,6 +109,29 @@ RSpec.describe WeatherApi do
           headers: headers
         }
       )
+
+    stub_request(:get, "#{described_class.base_uri}#{described_class::GEOLOCATION_ADDRESS_PATH}")
+      .with(
+        query: {
+          "q" => "Clearwater,FL,US",
+          "appid" => api_key
+        },
+        headers: headers
+      )
+      .to_return(
+        body: [
+          {
+            :"name" => "Clearwater",
+            :"local_names" => {:"en" => "Clearwater"},
+            :"lat" => 27.9658533,
+            :"lon" => -82.8001026,
+            :"country" => "US",
+            :"state" => "Florida"
+          }
+        ].to_json,
+        status: 200,
+        headers: headers
+      )
   end
 
   it "gets weather data" do

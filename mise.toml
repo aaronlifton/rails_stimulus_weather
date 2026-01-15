@@ -1,3 +1,4 @@
 [tools]
+biome = "latest"
 "gem:rubyfmt" = "latest"
 ruby = "3.4.8"

@@ -1,0 +1,127 @@
+<div class="w-full" data-controller="forecast">
+  <div class="mx-auto max-w-5xl">
+    <div
+      class="
+        relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br
+        from-slate-50 via-white to-sky-100 px-6 py-10 shadow-xl
+      "
+    >
+      <div
+        class="
+          absolute -right-24 -top-24 h-56 w-56 rounded-full bg-sky-200/40 blur-3xl
+        "
+      ></div>
+      <div
+        class="
+          absolute -bottom-20 -left-16 h-48 w-48 rounded-full bg-amber-200/40 blur-3xl
+        "
+      ></div>
+
+      <div class="relative z-10">
+        <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Live Forecast</p>
+            <h1 class="mt-3 text-3xl font-semibold text-slate-900 md:text-4xl">Find the latest temperature fast.</h1>
+            <p class="mt-2 max-w-xl text-base text-slate-600">
+              Enter a US ZIP code to fetch the current, low, and high
+              temperatures. Cached responses return instantly.
+            </p>
+          </div>
+          <div class="rounded-2xl border border-white/60 bg-white/80 px-5 py-4 shadow-lg">
+            <p class="text-xs uppercase tracking-widest text-slate-500">Endpoint</p>
+            <p class="mt-1 font-mono text-sm text-slate-700">GET /forecasts?zipcode=XXXXX</p>
+          </div>
+        </div>
+
+        <form
+          class="
+            mt-8 grid gap-4 rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-md
+            md:grid-cols-[1fr_auto]
+          "
+          data-forecast-target="form"
+          data-action="submit->forecast#submit"
+        >
+          <div>
+            <label class="text-sm font-medium text-slate-700" for="zipcode">ZIP code</label>
+            <input
+              id="zipcode"
+              name="zipcode"
+              type="text"
+              inputmode="numeric"
+              autocomplete="postal-code"
+              placeholder="33760"
+              class="
+                mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base
+                text-slate-900 shadow-sm outline-none ring-0 transition focus:border-slate-400
+                focus:ring-2 focus:ring-sky-200
+              "
+              data-forecast-target="zipcode"
+            >
+            <p class="mt-2 text-xs text-slate-500">We only use the ZIP code to find the nearest weather station.</p>
+          </div>
+          <button
+            type="submit"
+            class="
+              inline-flex items-center justify-center rounded-xl bg-slate-900 px-6 py-3
+              text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition
+              hover:-translate-y-0.5 hover:bg-slate-800 focus:outline-none focus:ring-2
+              focus:ring-slate-400
+            "
+            data-forecast-target="submit"
+          >
+            Get forecast
+          </button>
+        </form>
+
+        <div
+          class="
+            mt-6 hidden rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm
+            text-rose-700
+          "
+          data-forecast-target="error"
+        ></div>
+
+        <div class="mt-8 grid gap-4 md:grid-cols-3" data-forecast-target="result">
+          <div class="rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-md">
+            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Current</p>
+            <div class="mt-4 flex items-end gap-2">
+              <span
+                class="text-4xl font-semibold text-slate-900"
+                data-forecast-target="current"
+              >--</span>
+              <span class="text-lg text-slate-500">°F</span>
+            </div>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-md">
+            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Low</p>
+            <div class="mt-4 flex items-end gap-2">
+              <span class="text-4xl font-semibold text-slate-900" data-forecast-target="low">--</span>
+              <span class="text-lg text-slate-500">°F</span>
+            </div>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-md">
+            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">High</p>
+            <div class="mt-4 flex items-end gap-2">
+              <span class="text-4xl font-semibold text-slate-900" data-forecast-target="high">--</span>
+              <span class="text-lg text-slate-500">°F</span>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="
+            mt-6 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500
+          "
+        >
+          <p data-forecast-target="status">Waiting for a ZIP code.</p>
+          <p
+            class="
+              rounded-full bg-white/80 px-3 py-1 text-xs uppercase tracking-widest
+              text-slate-500
+            "
+          >Cache-friendly</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

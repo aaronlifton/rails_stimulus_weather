@@ -12,8 +12,6 @@ gem "puma", ">= 5.0"
 gem "importmap-rails"
 # Hotwire's SPA-like page accelerator [https://turbo.hotwired.dev]
 gem "turbo-rails"
-# Hotwire's modest JavaScript framework [https://stimulus.hotwired.dev]
-gem "stimulus-rails"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
 
@@ -76,3 +74,7 @@ gem "rspec", "~> 3.13"
 gem "webmock", "~> 3.26"
 
 gem "rspec-rails", "~> 8.0"
+
+# Frontend
+gem "tailwindcss-rails", "~> 4.4"
+gem "stimulus-rails"
