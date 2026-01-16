@@ -24,8 +24,8 @@
 
 ```sh
 bin/setup
-bin/dev
 mise install
+bin/dev
 ```
 
 Open `http://localhost:3000` and enter an address (Preferably city + state).
