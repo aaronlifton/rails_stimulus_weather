@@ -11,9 +11,12 @@ class ForecastsController < ApplicationController
         begin
           forecast = ForecastService.get_forecast(address)
         rescue WeatherApi::Error, GeocoderApi::Error => e
-          return render(json: {error: {code: e.code, reasons: e.reasons || []}}, status: :internal_server_error)
+          return render(
+            json: {error: {message: e.message, code: e.code, reasons: e.reasons || []}},
+            status: :internal_server_error
+          )
         rescue StandardError => e
-          return render(json: {error: {code: :unknown_error}}, status: :internal_server_error)
+          return render(json: {error: {message: e.message, code: :unknown_error}}, status: :internal_server_error)
         end
 
         render(json: forecast, status: :ok)
