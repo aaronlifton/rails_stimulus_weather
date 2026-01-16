@@ -8,7 +8,6 @@ class ForecastController extends Controller {
     "error",
     "result",
     "currentTemp",
-    "status",
     "cacheIndicator",
   ];
   static errors = {
@@ -17,11 +16,12 @@ class ForecastController extends Controller {
       "Address not found. Please ensure you added the city and state, and optionally zipcode.",
     parse_geocode_response_failure: "Unable to load forecast",
     unknown_error: "Unable to load forecast",
+    geocode_address_errors:
+      "Unable to load forecast. Please check the address and try again.",
   };
 
   connect() {
     this.clearError();
-    this.setStatus();
   }
 
   submit(event) {
@@ -64,7 +64,6 @@ class ForecastController extends Controller {
       this.showError(ForecastController.errors.unknown_error);
     } finally {
       this.submitTarget.disabled = false;
-      this.setStatus();
     }
   }
 
@@ -96,12 +95,6 @@ class ForecastController extends Controller {
 
     this.errorTarget.textContent = "";
     this.errorTarget.classList.add("hidden");
-  }
-
-  setStatus(message) {
-    if (!this.hasStatusTarget) return;
-
-    this.statusTarget.textContent = message;
   }
 
   showCacheIndicator(show) {

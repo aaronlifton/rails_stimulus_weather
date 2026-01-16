@@ -220,7 +220,7 @@ RSpec.describe ForecastsController, type: :request do
             {
               body: {:"errors" => ["Address cannot be empty and cannot exceed 100 characters"], :"status" => "400"}.to_json,
               status: 400,
-              headers: weather_response_headers
+              headers: response_headers
             }
           )
       end
@@ -229,7 +229,15 @@ RSpec.describe ForecastsController, type: :request do
         perform_request
 
         expect(response.parsed_body).to(
-          eq({"error" => {"code" => nil, "reasons" => ["Address cannot be empty and cannot exceed 100 characters"]}})
+          eq(
+            {
+              "error" => {
+                "message" => "Failed to geocode address",
+                "code" => "geocode_address_errors",
+                "reasons" => ["Address cannot be empty and cannot exceed 100 characters"]
+              }
+            }
+          )
         )
       end
     end
@@ -263,7 +271,15 @@ RSpec.describe ForecastsController, type: :request do
         perform_request
 
         expect(response.parsed_body).to(
-          eq({"error" => {"code" => "weather_api_error", "reasons" => []}})
+          eq(
+            {
+              "error" => {
+                "message" => "Error fetching weather data: Invalid API key. Please see https://openweathermap.org/faq#error401 for more info.",
+                "code" => "weather_api_error",
+                "reasons" => []
+              }
+            }
+          )
         )
       end
     end

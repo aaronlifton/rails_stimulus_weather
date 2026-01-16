@@ -32,8 +32,11 @@ class GeocoderApi
 
     if response.code == 200
       data = response.parsed_response
-      result = data["result"]
-      address_matches = result["addressMatches"]
+      address_matches = data.dig("result").dig("addressMatches")
+
+      if address_matches.nil?
+        raise Error.new("Failed to parse geocoding response", code: :parse_geocode_response_failure)
+      end
 
       if address_matches.length.zero?
         raise Error.new("No matches found for address", code: :address_not_found)
@@ -42,6 +45,7 @@ class GeocoderApi
       address = address_matches.first
       coords = address["coordinates"]
 
+      # Rounded to precision 7 because that is what the OpenWeatherMap API returns
       return {
         lat: coords["y"].round(7),
         long: coords["x"].round(7),
@@ -49,10 +53,10 @@ class GeocoderApi
       }
     else
       if response.parsed_response
-        # ["Address cannot be empty and cannot exceed 100 characters"]
+        # E.g. ["Address cannot be empty and cannot exceed 100 characters"]
         reasons = response.parsed_response.dig("errors")
         if reasons
-          raise Error.new("Failed to geocode address", reasons: reasons)
+          raise Error.new("Failed to geocode address", reasons: reasons, code: :geocode_address_errors)
         else
           raise Error.new("Failed to geocode address", code: :unknown_error)
         end

@@ -54,10 +54,13 @@ end
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
+  # For development, after initializing ruby-lsp, if it works better with its
+  # own gemfile, create .ruby-lsp/Gemfile with the following gems:
   gem "ruby-lsp"
   gem "ruby-lsp-rails"
   gem "ruby-lsp-rspec"
   gem "ruby-lsp-rubyfmt"
+  # Prefer rubyfmt over rubocop
   # gem "rubocop"
 end
 
