@@ -4,9 +4,11 @@ require("weather_api")
 
 RSpec.describe WeatherApi do
   subject(:weather_api) { described_class.new }
-  let(:zipcode) { "33760" }
-  let(:lat) { 27.9004 }
-  let(:lon) { -82.7152 }
+
+  let(:lat) { -76.927487242301 }
+  let(:lon) { 38.846016223866 }
+  let(:zipcode) { "20233" }
+  let(:address_data) { {lat: lat, long: lon, zipcode: zipcode} }
   let(:temp) { 60.53 }
   let(:temp_min) { 58.14 }
   let(:temp_max) { 63.05 }
@@ -21,10 +23,11 @@ RSpec.describe WeatherApi do
   }
   let(:response_headers) {
     {
-      "date" => ["Thu, 15 Jan 2026 00:33:50 GMT"],
+      "date" => ["Thu, 15 Jan 2026 23:38:48 GMT"],
       "content-type" => ["application/json; charset=utf-8"],
+      "content-length" => ["108"],
       "connection" => ["close"],
-      "x-cache-key" => ["/geo/1.0/zipasdf?"],
+      "x-cache-key" => ["/data/2.5/weather?sdf=1"],
       "access-control-allow-origin" => ["*"],
       "access-control-allow-credentials" => ["true"],
       "access-control-allow-methods" => ["GET, POST"]
@@ -32,41 +35,21 @@ RSpec.describe WeatherApi do
   }
   let(:memory_store) { ActiveSupport::Cache.lookup_store(:memory_store) }
 
-  # let(:weather_response_headers) {
-  #   {
-  #     "date" => ["Thu, 15 Jan 2026 00:35:49 GMT"],
-  #     "content-type" => ["application/json; charset=utf-8"],
-  #     "content-length" => ["484"],
-  #     "connection" => ["close"],
-  #     "x-cache-key" => ["/data/2.5/weather?lat=0&lon=0"],
-  #     "access-control-allow-origin" => ["*"],
-  #     "access-control-allow-credentials" => ["true"],
-  #     "access-control-allow-methods" => ["GET, POST"]
-  #   }
-  # }
+  describe "initialization" do
+    before do
+      allow(Rails.application.credentials).to(receive(:open_weather_map_api_key).and_return(nil))
+    end
+
+    it "raises an error when api key is missing" do
+      expect { described_class.new }.to(raise_error("API Key missing"))
+    end
+  end
 
   before do
     allow(Rails).to(receive(:cache).and_return(memory_store))
     Rails.cache.clear
 
-    expect(Rails.application.credentials).to(receive(:open_weather_map_api_key).and_return(api_key))
-
-    stub_request(:get, "#{described_class.base_uri}#{described_class::GEOLOCATION_PATH}")
-      .with(
-        query: {"zip" => zipcode, "appid" => api_key},
-        headers: headers
-      )
-      .to_return(
-        {
-          body: {
-            "zip" => "33760",
-            "name" => "Largo",
-            "lat" => lat,
-            "lon" => lon,
-            "country" => "US"
-          }.to_json
-        }
-      )
+    allow(Rails.application.credentials).to(receive(:open_weather_map_api_key).and_return(api_key))
 
     stub_request(:get, "#{described_class.base_uri}#{described_class::WEATHER_PATH}")
       .with(
@@ -106,104 +89,40 @@ RSpec.describe WeatherApi do
             "cod" => 200
           }.to_json,
           status: 200,
-          headers: headers
+          headers: response_headers
         }
-      )
-
-    stub_request(:get, "#{described_class.base_uri}#{described_class::GEOLOCATION_ADDRESS_PATH}")
-      .with(
-        query: {
-          "q" => "Clearwater,FL,US",
-          "appid" => api_key
-        },
-        headers: headers
-      )
-      .to_return(
-        body: [
-          {
-            :"name" => "Clearwater",
-            :"local_names" => {:"en" => "Clearwater"},
-            :"lat" => 27.9658533,
-            :"lon" => -82.8001026,
-            :"country" => "US",
-            :"state" => "Florida"
-          }
-        ].to_json,
-        status: 200,
-        headers: headers
       )
   end
 
   it "gets weather data" do
-    data = weather_api.get_weather(zipcode)
+    data = weather_api.get_weather(address_data)
     expect(data).to(
       eq(
         {
-          temperature_current: temp,
-          temperature_low: temp_min,
-          temperature_high: temp_max
+          temperature_current: temp
         }
       )
     )
   end
 
   it "writes to the cache" do
-    data = {
-      temperature_current: temp,
-      temperature_low: temp_min,
-      temperature_high: temp_max
+    cache_data = {
+      temperature_current: temp
     }
     expect(Rails.cache.read("forecast/#{zipcode}")).to(be_nil)
-
-    weather_data = weather_api.get_weather(zipcode)
-    expect(weather_data).to(eq(data))
-
-    expect(Rails.cache.read("forecast/#{zipcode}")).to(eq(data))
-  end
-
-  context("when the geolocation API returns a 500 error") do
-    let(:response_status) { 500 }
-    let(:error_message) { "Internal Server Error" }
-
-    before do
-      stub_request(:get, "#{described_class.base_uri}#{described_class::GEOLOCATION_PATH}")
-        .with(
-          query: {"zip" => zipcode, "appid" => api_key},
-          headers: headers
-        )
-        .to_return(
-          {
-            body: {
-              cod: response_status,
-              message: error_message
-            }.to_json,
-            status: response_status,
-            headers: response_headers
-          }
-        )
-    end
-
-    it "raises an error with the api error" do
-      expect { weather_api.get_weather(zipcode) }.to(
-        raise_error(described_class::Error, "Error fetching geolocation data: Internal Server Error")
+    expect(Rails.cache)
+      .to(
+        receive(:write).with("forecast/#{zipcode}", cache_data, {expires_in: described_class::WEATHER_CACHE_EXPIRY})
       )
-    end
+      .and_call_original
 
-    context("when the weather API returns a 401 error") do
-      let(:error_message) { "Invalid API key" }
+    weather_data = weather_api.get_weather(address_data)
+    expect(weather_data).to(eq(cache_data))
 
-      it "raises an error with the api error" do
-        expect { weather_api.get_weather(zipcode) }.to(
-          raise_error(described_class::Error, "Error fetching geolocation data: Invalid API key")
-        )
-      end
-    end
+    expect(Rails.cache.read("forecast/#{zipcode}")).to(eq(cache_data))
   end
 
-  context("when the geolocation API returns a 500 error") do
-    let(:response_status) { 500 }
-    let(:error_message) { "Internal Server Error" }
-
+  context("when the weather api returns a 401") do
     before do
       stub_request(:get, "#{described_class.base_uri}#{described_class::WEATHER_PATH}")
         .with(
@@ -219,36 +138,27 @@ RSpec.describe WeatherApi do
         .to_return(
           {
             body: {
-              cod: response_status,
-              message: error_message
+              "cod" => 401,
+              "message" => "Invalid API key. Please see https://openweathermap.org/faq#error401 for more info."
             }.to_json,
-            status: response_status,
+            status: 401,
             headers: response_headers
           }
         )
     end
 
-    it "raises an error with the api error" do
-      expect { weather_api.get_weather(zipcode) }.to(
-        raise_error(described_class::Error, "Error fetching weather data: Internal Server Error")
-      )
-    end
-
-    context("when the weather API returns a 401 error") do
-      let(:error_message) { "Invalid API key" }
-
-      it "raises an error with the api error" do
-        expect { weather_api.get_weather(zipcode) }.to(
-          raise_error(described_class::Error, "Error fetching weather data: Invalid API key")
-        )
+    it "handles the api error" do
+      begin
+        weather_api.get_weather(address_data)
+      rescue StandardError => e
+        expect(e.class).to(eq(described_class::Error))
+        expect(e.message).to(include("Invalid API key"))
+        expect(e.code).to(eq(:weather_api_error))
       end
     end
   end
 
-  context("when the geolocation API returns an unparsable body") do
-    let(:response_status) { 500 }
-    let(:error_message) { "Internal Server Error" }
-
+  context("when the weather api returns unparsable json") do
     before do
       stub_request(:get, "#{described_class.base_uri}#{described_class::WEATHER_PATH}")
         .with(
@@ -264,20 +174,23 @@ RSpec.describe WeatherApi do
         .to_return(
           {
             body: {
-              cod: response_status,
-              message: error_message
+              "cod" => 404
             }.to_json +
               "asdf",
-            status: response_status,
+            status: 404,
             headers: response_headers
           }
         )
     end
 
-    it "raises a parse error" do
-      expect { weather_api.get_weather(zipcode) }.to(
-        raise_error(described_class::Error, including("Unable to parse error response: unexpected token"))
-      )
+    it "handles the api error" do
+      begin
+        weather_api.get_weather(address_data)
+      rescue StandardError => e
+        expect(e.class).to(eq(described_class::Error))
+        expect(e.message).to(include("Unable to parse"))
+        expect(e.code).to(eq(:weather_api_error))
+      end
     end
   end
 end

@@ -12,7 +12,7 @@ describe("ForecastController", () => {
     document.body.innerHTML = `
       <div data-controller="forecast">
           <form data-forecast-target="form">
-          <input data-forecast-target="zipcode">
+          <input data-forecast-target="address">
           <button data-forecast-target="submit"></button>
         </form>
         <div data-forecast-target="error" class="hidden"></div>
@@ -38,7 +38,7 @@ describe("ForecastController", () => {
       document.body.innerHTML = `
         <div data-controller="forecast">
           <form data-forecast-target="form">
-            <input data-forecast-target="zipcode">
+            <input data-forecast-target="address">
             <button data-forecast-target="submit"></button>
           </form>
           <div data-forecast-target="error" class="hidden"></div>
@@ -65,11 +65,14 @@ describe("ForecastController", () => {
     });
 
     it("should fetch forecast and update DOM on form submission", async () => {
-      const zipcode = "33760";
-      const currentTemp = 79;
-      const zipcodeInput = getTargetElement("zipcode");
+      const address = "4600 Silver Hill Rd, Washington, DC";
+      const addressParam = new URLSearchParams();
+      addressParam.append("address", address);
 
-      zipcodeInput.value = zipcode;
+      const currentTemp = 79;
+      const addressInput = getTargetElement("address");
+
+      addressInput.value = address;
 
       const mockFetch = jest.fn().mockResolvedValue({
         status: 200,
@@ -84,24 +87,29 @@ describe("ForecastController", () => {
       await controller.fetchForecast();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        `http://localhost/forecasts?zipcode=${zipcode}`,
+        `http://localhost/forecasts?${addressParam}`,
         { headers: { Accept: "application/json" } },
       );
       expect(currentTempSpan.textContent).toBe(currentTemp.toString());
     });
 
     it("should display errors based on error codes from the backend", async () => {
-      const zipcode = "33760";
-      const zipcodeInput = getTargetElement("zipcode");
+      const address = "4600 Silver Hill Rd, Washington, DC";
+      const addressParam = new URLSearchParams();
+      addressParam.append("address", address);
 
-      zipcodeInput.value = zipcode;
+      const addressInput = getTargetElement("address");
+
+      addressInput.value = address;
 
       const mockFetch = jest.fn().mockResolvedValue({
         status: 400,
         ok: false,
         json: jest.fn().mockResolvedValue({
-          error: "api error message",
-          code: "missing_zip_code",
+          error: {
+            message: "api error message",
+            code: "address_required",
+          },
         }),
       });
       global.fetch = mockFetch;
@@ -112,14 +120,14 @@ describe("ForecastController", () => {
       await controller.fetchForecast();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        `http://localhost/forecasts?zipcode=${zipcode}`,
+        `http://localhost/forecasts?${addressParam}`,
         { headers: { Accept: "application/json" } },
       );
       const statusSpan = getTargetElement("status");
       expect(statusSpan.textContent).not.toEqual("Loading...");
 
       expect(errorDiv.textContent).toEqual(
-        ForecastController.errors.missing_zip_code,
+        ForecastController.errors.address_required,
       );
     });
   });
