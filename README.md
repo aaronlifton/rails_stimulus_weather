@@ -28,7 +28,9 @@ mise install
 bin/dev
 ```
 
-Open `http://localhost:3000` and enter an address (Preferably line1, line2, city, and state).
+Open `http://localhost:3000` and enter an address (Preferably in `line1, line2, city, state` format).
+
+Example:
 
 ### Testing
 
@@ -68,10 +70,10 @@ Frontend
 }
 ```
 
-- `lat`: latitude (float, 7-decimal)
-- `long`: longitude (float, 7-decimal)
-- `zipcode`: string; census API may omit it based on address (see census API
-  docs)
+- `lat`: latitude (float, rounded to 7 decimals)
+- `long`: longitude (float, rounded to 7 decimals)
+- `zipcode`: string; census API may omit it based on address (see [Census API
+  docs](https://geocoding.geo.census.gov/geocoder/Geocoding_Services_API.html))
 
 ### 3) Weather response: `weather_data` (hash)
 
