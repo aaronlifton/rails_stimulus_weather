@@ -6,7 +6,7 @@ RSpec.describe GeocoderApi do
   subject(:geocoder_api) { described_class.new }
 
   let(:address) { "4600 Silver Hill Rd, Washington, DC" }
-  let(:lat) { -76.927487242301 }
+  let(:lat) { 76.927487242301 }
   let(:long) { 38.846016223866 }
   let(:zipcode) { "20233" }
 
@@ -91,8 +91,9 @@ RSpec.describe GeocoderApi do
     expect(data).to(
       eq(
         {
-          lat: lat.round(7),
-          long: long.round(7),
+          # Ensure the class returns rounded coordinates
+          lat: described_class.round(lat),
+          long: described_class.round(long),
           zipcode: zipcode
         }
       )
@@ -167,6 +168,12 @@ RSpec.describe GeocoderApi do
         expect(e.message).to(eq("No matches found for address"))
         expect(e.code).to(eq(:address_not_found))
       end
+    end
+  end
+
+  describe "#round" do
+    it "rounds to the defined number of decimal places" do
+      expect(described_class.round(lat)).to(eq(lat.round(described_class::COORDINATE_PRECISION)))
     end
   end
 end

@@ -1,24 +1,19 @@
-class GeocoderApi
-  include HTTParty
-
+class GeocoderApi < BaseApi
+  # Docs: https://geocoding.geo.census.gov/geocoder/Geocoding_Services_API.html
+  # No API key needed
   base_uri "https://geocoding.geo.census.gov"
   format :json
 
   GEOLOCATION_PATH = "/geocoder/locations/onelineaddress"
   DEFAULT_BENCHMARK = "Public_AR_Current"
   DEFAULT_HEADERS = {"Content-Type" => "application/json"}.freeze
+  COORDINATE_PRECISION = 6
 
-  class Error < StandardError
-    attr_reader :code, :reasons, :request_id
-
-    def initialize(message = "Geocoding API request failed", metadata = {})
-      super(message)
-
-      @code = metadata[:code]
-      @reasons = metadata[:reasons]
-    end
+  class Error < BaseApi::Error
+    DEFAULT_MESSAGE = "Geocoding API request failed"
   end
 
+  # Geocodes the address into {lat, long, zipcode}
   def geocode(address)
     response = self.class.get(
       GEOLOCATION_PATH,
@@ -34,10 +29,15 @@ class GeocoderApi
       data = response.parsed_response
       address_matches = data.dig("result").dig("addressMatches")
 
+      # If for some reason, the JSON isn't as we expect, we raise a parse error.
+      # The docs don't specify that this can happen, but it is a different error
+      # than when matches is an empty array, since the docs specifically mention
+      # that happens when no matches can be found.
       if address_matches.nil?
         raise Error.new("Failed to parse geocoding response", code: :parse_geocode_response_failure)
       end
 
+      # Census API will return an empty array of matches when it can't find any
       if address_matches.length.zero?
         raise Error.new("No matches found for address", code: :address_not_found)
       end
@@ -45,10 +45,12 @@ class GeocoderApi
       address = address_matches.first
       coords = address["coordinates"]
 
-      # Rounded to precision 7 because that is what the OpenWeatherMap API returns
+      # Rounded to precision 6 because OpenWeatherMap API says that is common
+      # practice, and results in accuracy up to approximately 0.11 meters
+      # See https://openweathermap.org/support-centre
       return {
-        lat: coords["y"].round(7),
-        long: coords["x"].round(7),
+        lat: self.class.round(coords["y"]),
+        long: self.class.round(coords["x"]),
         zipcode: address["addressComponents"]["zip"]
       }
     else
@@ -56,13 +58,24 @@ class GeocoderApi
         # E.g. ["Address cannot be empty and cannot exceed 100 characters"]
         reasons = response.parsed_response.dig("errors")
         if reasons
+          # Here we pass Census API error messages as reasons, meant for debugging
           raise Error.new("Failed to geocode address", reasons: reasons, code: :geocode_address_errors)
         else
+          # If the Census API didn't provide any reasons for the error, we mark
+          # it as unknown
           raise Error.new("Failed to geocode address", code: :unknown_error)
         end
       else
+        # HTTParty has a nil `parsed_response` if the encoding is invalid, or
+        # if there's other issues; See `httparty-0.24.0/lib/httparty/parser.rb`
+
+        # Raise a parse failure if the response was not able to be parsed
         raise Error.new("Failed to parse geocoding response", code: :parse_geocode_response_failure)
       end
     end
+  end
+
+  def self.round(num, precision = COORDINATE_PRECISION)
+    num.round(precision)
   end
 end

@@ -1,6 +1,5 @@
-class WeatherApi
-  include HTTParty
-
+class WeatherApi < BaseApi
+  # Docs: https://openweathermap.org/current
   base_uri "https://api.openweathermap.org"
   format :json
 
@@ -12,15 +11,8 @@ class WeatherApi
   DEFAULT_EXCLUDE = "minutely,hourly,alerts"
   DEFAULT_HEADERS = {"Content-Type" => "application/json"}.freeze
 
-  class Error < StandardError
-    attr_reader :code, :reasons, :request_id
-
-    def initialize(message = "Weather API request failed", metadata = {})
-      super(message)
-
-      @code = metadata[:code]
-      @reasons = metadata[:reasons]
-    end
+  class Error < BaseApi::Error
+    DEFAULT_MESSAGE = "Weather API request failed"
   end
 
   def initialize
@@ -43,11 +35,11 @@ class WeatherApi
       )
     if response.code == 200
       parsed_response = response.parsed_response
-      current_weather = parsed_response["main"]
 
+      current_weather = parsed_response["main"]
       current_temp = current_weather["temp"]
 
-      # Could not find a free way to get current day low/high temps, these are local min/maxes
+      # Could not find a free way to get current day low/high temps, these are coordinate-local min/maxes
       # low_temp = current_weather["temp_min"]
       # high_temp = current_weather["temp_max"]
 
@@ -55,7 +47,8 @@ class WeatherApi
         temperature_current: current_temp
       }
 
-      # The census API says it sometimes will not return zipcode
+      # The Census API docs don't specifically say values for all fields will always be
+      # returned, so protect against case where they're not
       if zipcode
         Rails.cache.write("forecast/#{zipcode}", weather_data, {expires_in: WEATHER_CACHE_EXPIRY})
       end
@@ -69,6 +62,8 @@ class WeatherApi
   private
 
   def handle_api_error(response, message, metadata = {})
+    # When the OpenWeatherMap API returns an error, they return it as json containing a message:
+    # { "cod": 401, "message": "Invalid API key. Please see https://openweathermap.org/faq#error401 for more info." }
     begin
       parsed_response = response.parsed_response
       raise Error.new("#{message}: #{parsed_response["message"]}", **metadata)

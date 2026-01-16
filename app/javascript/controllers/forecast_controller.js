@@ -13,7 +13,7 @@ class ForecastController extends Controller {
   static errors = {
     address_required: "Address is required",
     address_not_found:
-      "Address not found. Please ensure you added the city and state, and optionally zipcode.",
+      "Address not found. Please ensure you added the city, state, and optionally zipcode.",
     parse_geocode_response_failure: "Unable to load forecast",
     unknown_error: "Unable to load forecast",
     geocode_address_errors:
