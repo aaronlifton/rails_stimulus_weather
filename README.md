@@ -77,6 +77,10 @@ Frontend
 - `zipcode`: string; census API may omit it based on address (see [Census API
   docs](https://geocoding.geo.census.gov/geocoder/Geocoding_Services_API.html))
 
+These attributes are cached via `ForecastService#get_forecast` under a hashed version of the user's address to speed up the user's request, since the lat, long, and zipcode will never change over time.
+
+In production, the max_age of the cache is 1 year, so addresses should only need to be geocoded once a year. Ideally they would live in a database, but I was trying to keep things simple.
+
 ### 3) Weather response: `weather_data` (hash)
 
 `WeatherApi#get_weather` returns the following `weather_data` and returns it to the controller:

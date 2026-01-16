@@ -74,11 +74,15 @@ RSpec.describe ForecastService do
       )
     end
 
-    it "returns the retrieved weather data" do
+    it "returns the retrieved weather data and caches the address data" do
+      expect(Rails.cache.read(described_class.address_cache_key(address))).to(be_nil)
+
       expect(forecast_service.get_forecast(address)).to(eq(weather_data))
+
+      expect(Rails.cache.read(described_class.address_cache_key(address))).to(eq(address_data))
     end
 
-    context("when the data is already cached") do
+    context("when the weather data is already cached") do
       let(:cached_data) { {"cached_data" => true} }
       before do
         Rails.cache.write("forecast/#{zipcode}", cached_data)
@@ -89,6 +93,47 @@ RSpec.describe ForecastService do
       end
 
       it "returns the cached data and adds a cached tag" do
+        expect(weather_mock).not_to(receive(:get_weather))
+
+        expect(forecast_service.get_forecast(address)).to(
+          eq(
+            cached_data.merge(cached: true)
+          )
+        )
+      end
+    end
+
+    context("when the address data is already cached") do
+      before do
+        Rails.cache.write(described_class.address_cache_key(address), address_data)
+      end
+
+      after do
+        allow(Rails.cache).to(receive(:read).and_call_original)
+      end
+
+      it "returns the cached data and adds a cached tag" do
+        expect(geocoder_mock).not_to(receive(:geocode))
+        expect(weather_mock).to(receive(:get_weather))
+
+        expect(forecast_service.get_forecast(address)).to(eq(weather_data))
+      end
+    end
+
+    context("when both the address and weather data are already cached") do
+      let(:cached_data) { {"cached_data" => true} }
+
+      before do
+        Rails.cache.write("forecast/#{zipcode}", cached_data)
+        Rails.cache.write(described_class.address_cache_key(address), address_data)
+      end
+
+      after do
+        allow(Rails.cache).to(receive(:read).and_call_original)
+      end
+
+      it "returns the cached data and adds a cached tag" do
+        expect(geocoder_mock).not_to(receive(:geocode))
         expect(weather_mock).not_to(receive(:get_weather))
 
         expect(forecast_service.get_forecast(address)).to(
