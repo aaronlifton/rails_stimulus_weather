@@ -4,6 +4,8 @@
 - Uses the US Census Geocoder to turn an address into lat/long, then calls OpenWeatherMap for current conditions.
 - Results are cached by ZIP code.
 
+<img width="1022" height="424" alt="image" src="https://github.com/user-attachments/assets/c434cf9f-6b0b-4339-908f-e040a3209acf" />
+
 ## Requirements
 
 - Ruby/Rails app with credentials set for `open_weather_map_api_key`

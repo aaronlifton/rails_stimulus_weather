@@ -76,7 +76,7 @@ class GeocoderApi < BaseApi
 
   rescue JSON::ParserError => e
     # Raise a parse failure error if the response failed to parse. This may happen
-    # when calling response.parsed_response for the first time; See `httparty-0.24.0/lib/httparty/response.rb`
+    # when calling response.parsed_response for the first time; See `httparty-0.24.0/lib/httparty/response.rb:37`
     raise Error.new("Failed to parse geocoding response: #{e.message}", code: :parse_geocode_response_failure)
   end
 
