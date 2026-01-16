@@ -17,20 +17,19 @@
       >
         <div class="grid grid-cols-[1fr_auto] items-end gap-4 h-20">
           <div>
-            <label class="text-sm font-medium text-slate-700" for="zipcode">ZIP code</label>
+            <label class="text-sm font-medium text-slate-700" for="address">Address</label>
             <input
-              id="zipcode"
-              name="zipcode"
+              id="address"
+              name="address"
               type="text"
-              inputmode="numeric"
-              autocomplete="postal-code"
-              placeholder="33760"
+              autocomplete="street-address"
+              placeholder="4600 Silver Hill Rd, Washington, DC"
               class="
                 mt-2 w-full border border-slate-200 bg-white px-4 py-3 text-base text-slate-900
                 outline-none ring-0 transition focus:border-slate-400 focus:ring-2
                 focus:ring-sky-200 h-12
               "
-              data-forecast-target="zipcode"
+              data-forecast-target="address"
             >
           </div>
           <button
@@ -55,7 +54,7 @@
       ></div>
 
       <div class="mt-8 grid gap-4 md:grid-cols-3" data-forecast-target="result">
-        <div class="bg-white/80 p-5 ">
+        <div class="relative bg-white/80 p-5 ">
           <div class="flex w-full items-center justify-between">
             <p class="text-xs text-slate-800">Current temperature</p>
             <div class="text-sm text-slate-500">
@@ -69,14 +68,12 @@
             >--</span>
             <span class="text-lg text-slate-500">°F</span>
           </div>
-          <div class="flex w-full justify-end">
-            <div
-              data-forecast-target="cacheIndicator"
-              class="
-                p-1 bg-slate-400 text-white hidden uppercase text-xs tracking-[.20em]
-              "
-            >cached</div>
-          </div>
+          <div
+            data-forecast-target="cacheIndicator"
+            class="
+              absolute right-3 top-3 p-1 bg-slate-400 text-white hidden uppercase text-xs tracking-[.20em]
+            "
+          >cached</div>
         </div>
 
       </div>

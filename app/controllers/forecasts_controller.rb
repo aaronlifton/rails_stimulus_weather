@@ -3,13 +3,19 @@ class ForecastsController < ApplicationController
     respond_to do |format|
       format.html { render }
       format.json do
-        zipcode = index_params[:zipcode]
-        unless zipcode.present?
-          render(json: {error: "zip_code parameter is required", code: :missing_zip_code}, status: :bad_request)
-          next
+        address = index_params[:address]
+        unless address.present?
+          return render(json: {error: "address parameter is required", code: :address_required}, status: :bad_request)
         end
 
-        forecast = ForecastService.get_forecast(zipcode)
+        begin
+          forecast = ForecastService.get_forecast(address)
+        rescue WeatherApi::Error, GeocoderApi::Error => e
+          return render(json: {error: {code: e.code, reasons: e.reasons || []}}, status: :internal_server_error)
+        rescue StandardError => e
+          return render(json: {error: {code: :unknown_error}}, status: :internal_server_error)
+        end
+
         render(json: forecast, status: :ok)
       end
     end
@@ -18,6 +24,6 @@ class ForecastsController < ApplicationController
   private
 
   def index_params
-    params.permit(:zipcode)
+    params.permit(:address)
   end
 end

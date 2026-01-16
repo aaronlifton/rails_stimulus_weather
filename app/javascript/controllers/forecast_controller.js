@@ -3,7 +3,7 @@ import { Controller } from "@hotwired/stimulus";
 class ForecastController extends Controller {
   static targets = [
     "form",
-    "zipcode",
+    "address",
     "submit",
     "error",
     "result",
@@ -12,7 +12,11 @@ class ForecastController extends Controller {
     "cacheIndicator",
   ];
   static errors = {
-    missing_zip_code: "ZIP code is required.",
+    address_required: "Address is required",
+    address_not_found:
+      "Address not found. Please ensure you added the city and state, and optionally zipcode.",
+    parse_geocode_response_failure: "Unable to load forecast",
+    unknown_error: "Unable to load forecast",
   };
 
   connect() {
@@ -26,42 +30,40 @@ class ForecastController extends Controller {
   }
 
   async fetchForecast() {
-    const zipcode = this.zipcodeTarget.value.trim();
-    if (!zipcode) {
-      this.showError("ZIP code is required.");
-      // return;
+    const address = this.addressTarget.value.trim();
+    if (!address) {
+      this.showError(ForecastController.errors.address_required);
+      return;
     }
 
     const url = new URL("/forecasts", window.location.origin);
-    url.searchParams.set("zipcode", zipcode);
+    url.searchParams.set("address", address);
 
     this.clearError();
 
     try {
-      // Only show loader on slow connections/API calls
-      this.onFetch(true);
-      const loadingTimeout = setTimeout(() => {
-        this.setStatus("Loading...");
-      }, 200);
+      this.submitTarget.disabled = true;
+      this.currentTempTarget.textContent = "--";
+      this.showCacheIndicator(false);
 
       const response = await fetch(url.toString(), {
         headers: { Accept: "application/json" },
       });
       const data = await response.json();
 
-      window.clearTimeout(loadingTimeout);
-
       if (response.ok) {
         this.updateResult(data);
       } else {
-        this.handleError(data);
+        this.showError(
+          ForecastController.errors[data?.error?.code || "unknown_error"],
+        );
       }
     } catch (error) {
       console.debug(error);
 
-      this.handleError();
+      this.showError(ForecastController.errors.unknown_error);
     } finally {
-      this.onFetch(false);
+      this.submitTarget.disabled = false;
       this.setStatus();
     }
   }
@@ -71,8 +73,7 @@ class ForecastController extends Controller {
       data.temperature_current,
     );
     if (data.cached) {
-      this.setStatus("cached");
-      this.toggleCacheIndicator(true);
+      this.showCacheIndicator(true);
     }
   }
 
@@ -81,20 +82,6 @@ class ForecastController extends Controller {
     if (value === null || value === undefined || value === "") return "--";
     const number = Number(value);
     return Number.isNaN(number) ? "--" : Math.round(number);
-  }
-
-  onFetch(isLoading) {
-    this.submitTarget.disabled = isLoading;
-  }
-
-  handleError(error) {
-    // console.debug(error);
-
-    if (error?.code && ForecastController.errors[error.code]) {
-      this.showError(ForecastController.errors[error.code]);
-    } else {
-      this.showError("Unable to load forecast.");
-    }
   }
 
   showError(message) {
@@ -112,12 +99,12 @@ class ForecastController extends Controller {
   }
 
   setStatus(message) {
-    if (this.hasStatusTarget) {
-      this.statusTarget.textContent = message;
-    }
+    if (!this.hasStatusTarget) return;
+
+    this.statusTarget.textContent = message;
   }
 
-  toggleCacheIndicator(show) {
+  showCacheIndicator(show) {
     if (!this.hasCacheIndicatorTarget) return;
 
     if (show) {

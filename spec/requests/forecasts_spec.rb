@@ -2,8 +2,8 @@ require "spec_helper"
 
 RSpec.describe ForecastsController, type: :request do
   subject(:perform_request) { get("/forecasts", as: :json) }
-  let(:memory_store) { ActiveSupport::Cache.lookup_store(:memory_store) }
 
+  let(:memory_store) { ActiveSupport::Cache.lookup_store(:memory_store) }
   let(:headers) {
     {
       "Accept" => "*/*",
@@ -23,7 +23,25 @@ RSpec.describe ForecastsController, type: :request do
       "access-control-allow-methods" => ["GET, POST"]
     }
   }
-  let(:zipcode) { "33760" }
+  let(:weather_response_headers) {
+    {
+      "date" => ["Thu, 15 Jan 2026 22:34:53 GMT"],
+      "content-type" => ["application/json"],
+      "content-length" => ["701"],
+      "connection" => ["close"],
+      "x-frame-options" => ["DENY"],
+      "cache-control" => ["private, no-store"],
+      "strict-transport-security" => ["max-age=31536000"],
+      "x-content-type-options" => ["nosniff"],
+      "x-xss-protection" => ["1;mode=block"],
+      "vary" => ["Origin"],
+      "set-cookie" => [
+        "TS0193e6a1=01283c52a4d29ddf99b16fb2ff97be5132f35a2c381d544d90bb9beed6598a44d26bb1daf0318aa19f038ac08bed0f9fe6148a3519; Path=/; Domain=.geocoding.geo.census.gov; Secure; HttpOnly"
+      ]
+    }
+  }
+  let(:zipcode) { "20233" }
+  let(:address) { "4600 Silver Hill Rd, Washington, DC" }
   let(:lat) { 27.9004 }
   let(:lon) { -82.7152 }
   let(:temp) { 60.53 }
@@ -31,13 +49,14 @@ RSpec.describe ForecastsController, type: :request do
   let(:temp_max) { 63.05 }
   let(:api_key) { "abc123" }
 
-  it "renders a json error if zipcode is missing" do
+  it "renders a json error if address is missing" do
     perform_request
 
     expect(response.parsed_body).to(
       eq(
         {
-          "error" => "zip_code parameter is required"
+          "error" => "address parameter is required",
+          "code" => "address_required"
         }
       )
     )
@@ -48,26 +67,61 @@ RSpec.describe ForecastsController, type: :request do
     Rails.cache.clear
   end
 
-  context("when zipcode is present") do
-    subject(:perform_request) { get("/forecasts?zipcode=33760", as: :json) }
+  context("when address is present") do
+    subject(:perform_request) { get("/forecasts", params: {address: address}, as: :json) }
 
     before do
       allow(Rails.application.credentials).to(receive(:open_weather_map_api_key).and_return(api_key))
 
-      stub_request(:get, "#{WeatherApi.base_uri}#{WeatherApi::GEOLOCATION_PATH}")
+      stub_request(:get, "#{GeocoderApi.base_uri}#{GeocoderApi::GEOLOCATION_PATH}")
         .with(
-          query: {"zip" => zipcode, "appid" => api_key},
+          query: {
+            "address" => address,
+            "benchmark" => GeocoderApi::DEFAULT_BENCHMARK,
+            "format" => "json"
+          },
           headers: headers
         )
         .to_return(
           {
             body: {
-              "zip" => "33760",
-              "name" => "Largo",
-              "lat" => lat,
-              "lon" => lon,
-              "country" => "US"
-            }.to_json
+              "result" => {
+                "input" => {
+                  "address" => {
+                    "address" => "4600 Silver Hill Rd, Washington, DC"
+                  },
+                  "benchmark" => {
+                    "isDefault" => true,
+                    "benchmarkDescription" => "Public Address Ranges - Current Benchmark",
+                    "id" => "4",
+                    "benchmarkName" => "Public_AR_Current"
+                  }
+                },
+                "addressMatches" => [
+                  {
+                    "tigerLine" => {"side" => "L", "tigerLineId" => "76355984"},
+                    "coordinates" => {"x" => lon, "y" => lat},
+                    "addressComponents" => {
+                      "zip" => zipcode,
+                      "streetName" => "SILVER HILL",
+                      "preType" => "",
+                      "city" => "WASHINGTON",
+                      "preDirection" => "",
+                      "suffixDirection" => "",
+                      "fromAddress" => "4600",
+                      "state" => "DC",
+                      "suffixType" => "RD",
+                      "toAddress" => "4700",
+                      "suffixQualifier" => "",
+                      "preQualifier" => ""
+                    },
+                    "matchedAddress" => "4600 SILVER HILL RD, WASHINGTON, DC, 20233"
+                  }
+                ]
+              }
+            }.to_json,
+            status: 200,
+            headers: {}
           }
         )
 
@@ -115,15 +169,12 @@ RSpec.describe ForecastsController, type: :request do
     end
 
     it "returns the current temperature" do
-      expect(a_request(:get, "#{WeatherApi.base_uri}#{WeatherApi::WEATHER_PATH}")).not_to(have_been_made)
       perform_request
 
       expect(response.parsed_body).to(
         eq(
           {
-            "temperature_current" => temp,
-            "temperature_low" => temp_min,
-            "temperature_high" => temp_max
+            "temperature_current" => temp
           }
         )
       )
@@ -140,13 +191,12 @@ RSpec.describe ForecastsController, type: :request do
       end
 
       it "returns the cached data" do
-
         perform_request
 
         expect(
           a_request(
             :get,
-            "https://api.openweathermap.org/data/2.5/weather"
+            "#{WeatherApi.base_uri}#{WeatherApi::WEATHER_PATH}"
           )
             .with(
               query: hash_including("units" => "imperial"),
@@ -155,7 +205,66 @@ RSpec.describe ForecastsController, type: :request do
         )
           .not_to(have_been_made)
 
-        expect(response.parsed_body).to(eq(cached_data))
+        expect(response.parsed_body).to(eq(cached_data.merge("cached" => true)))
+      end
+    end
+
+    context("when forecast service returns a geocoding error") do
+      before do
+        stub_request(:get, "#{GeocoderApi.base_uri}#{GeocoderApi::GEOLOCATION_PATH}")
+          .with(
+            query: {"address" => address, "benchmark" => GeocoderApi::DEFAULT_BENCHMARK, "format" => "json"},
+            headers: headers
+          )
+          .to_return(
+            {
+              body: {:"errors" => ["Address cannot be empty and cannot exceed 100 characters"], :"status" => "400"}.to_json,
+              status: 400,
+              headers: weather_response_headers
+            }
+          )
+      end
+
+      it "returns a json error response" do
+        perform_request
+
+        expect(response.parsed_body).to(
+          eq({"error" => {"code" => nil, "reasons" => ["Address cannot be empty and cannot exceed 100 characters"]}})
+        )
+      end
+    end
+
+    context("when weather API returns an API error") do
+      before do
+        stub_request(:get, "#{WeatherApi.base_uri}#{WeatherApi::WEATHER_PATH}")
+          .with(
+            query: {
+              "lat" => lat,
+              "lon" => lon,
+              "units" => "imperial",
+              "exclude" => WeatherApi::DEFAULT_EXCLUDE,
+              "appid" => api_key
+            },
+            headers: headers
+          )
+          .to_return(
+            {
+              body: {
+                "cod" => 401,
+                "message" => "Invalid API key. Please see https://openweathermap.org/faq#error401 for more info."
+              }.to_json,
+              status: 401,
+              headers: response_headers
+            }
+          )
+      end
+
+      it "returns a json error response" do
+        perform_request
+
+        expect(response.parsed_body).to(
+          eq({"error" => {"code" => "weather_api_error", "reasons" => []}})
+        )
       end
     end
   end
