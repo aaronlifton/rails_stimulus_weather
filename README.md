@@ -28,7 +28,7 @@ mise install
 bin/dev
 ```
 
-Open `http://localhost:3000` and enter an address (Preferably city + state).
+Open `http://localhost:3000` and enter an address (Preferably line1, line2, city, and state).
 
 ### Testing
 

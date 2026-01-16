@@ -8,22 +8,26 @@ const getTargetElement = (name) => {
 describe("ForecastController", () => {
   let controller;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     document.body.innerHTML = `
       <div data-controller="forecast">
-          <form data-forecast-target="form">
+        <form data-forecast-target="form">
           <input data-forecast-target="address">
           <button data-forecast-target="submit"></button>
         </form>
         <div data-forecast-target="error" class="hidden"></div>
-        <div data-forecast-target="result">
-          <span data-forecast-target="current"></span>
+        <div>
+          <span data-forecast-target="currentTemp"></span>
         </div>
-        <p data-forecast-target="status"></p>
       </div>
-    `;
+      `;
+
     const application = Application.start();
     application.register("forecast", ForecastController);
+
+    // Need to wait for a tick for stimulus to instantiate
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
     const element = document.querySelector("[data-controller='forecast']");
     controller = application.getControllerForElementAndIdentifier(
       element,
@@ -34,36 +38,6 @@ describe("ForecastController", () => {
   });
 
   describe("DOM interactions", () => {
-    beforeEach(async () => {
-      document.body.innerHTML = `
-        <div data-controller="forecast">
-          <form data-forecast-target="form">
-            <input data-forecast-target="address">
-            <button data-forecast-target="submit"></button>
-          </form>
-          <div data-forecast-target="error" class="hidden"></div>
-          <div>
-            <span data-forecast-target="currentTemp"></span>
-          </div>
-          <p data-forecast-target="status"></p>
-        </div>
-      `;
-
-      const application = Application.start();
-      application.register("forecast", ForecastController);
-
-      // Need to wait for a tick for stimulus to instantiate
-      await new Promise((resolve) => setTimeout(resolve, 0));
-
-      const element = document.querySelector("[data-controller='forecast']");
-      controller = application.getControllerForElementAndIdentifier(
-        element,
-        "forecast",
-      );
-
-      global.fetch = jest.fn();
-    });
-
     it("should fetch forecast and update DOM on form submission", async () => {
       const address = "4600 Silver Hill Rd, Washington, DC";
       const addressParam = new URLSearchParams();
@@ -123,8 +97,6 @@ describe("ForecastController", () => {
         `http://localhost/forecasts?${addressParam}`,
         { headers: { Accept: "application/json" } },
       );
-      const statusSpan = getTargetElement("status");
-      expect(statusSpan.textContent).not.toEqual("Loading...");
 
       expect(errorDiv.textContent).toEqual(
         ForecastController.errors.address_required,

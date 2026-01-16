@@ -19,6 +19,7 @@ class ForecastController extends Controller {
     geocode_address_errors:
       "Unable to load forecast. Please check the address and try again.",
   };
+  FORECASTS_PATH = "/forecasts";
 
   connect() {
     this.clearError();
@@ -36,7 +37,7 @@ class ForecastController extends Controller {
       return;
     }
 
-    const url = new URL("/forecasts", window.location.origin);
+    const url = new URL(this.FORECASTS_PATH, window.location.origin);
     url.searchParams.set("address", address);
 
     this.clearError();
