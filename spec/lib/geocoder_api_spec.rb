@@ -128,6 +128,29 @@ RSpec.describe GeocoderApi do
     end
   end
 
+  context("when the api returns an unparsable response") do
+    before do
+      stub_request(:get, "#{described_class.base_uri}#{described_class::GEOLOCATION_PATH}")
+        .with(
+          query: {"address" => address, "benchmark" => described_class::DEFAULT_BENCHMARK, "format" => "json"},
+          headers: headers
+        )
+        .to_return(
+          {
+            body: {foo: "bar"}.to_json + "asdf",
+            status: 400,
+            headers: response_headers
+          }
+        )
+    end
+
+    it "handles the error" do
+      expect { geocoder_api.geocode(address) }.to(
+        raise_error(described_class::Error, include("Failed to parse geocoding response: unexpected token"))
+      )
+    end
+  end
+
   context("when the api returns no matching adresses") do
     before do
       stub_request(:get, "#{described_class.base_uri}#{described_class::GEOLOCATION_PATH}")

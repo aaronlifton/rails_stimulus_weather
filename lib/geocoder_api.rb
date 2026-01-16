@@ -66,15 +66,21 @@ class GeocoderApi < BaseApi
           raise Error.new("Failed to geocode address", code: :unknown_error)
         end
       else
-        # HTTParty has a nil `parsed_response` if the encoding is invalid, or
-        # if there's other issues; See `httparty-0.24.0/lib/httparty/parser.rb`
+        # HTTParty a nil `parsed_response` if the encoding is invalid, or
+        # if there's other non-parser issues; See `httparty-0.24.0/lib/httparty/parser.rb:107`
 
         # Raise a parse failure if the response was not able to be parsed
         raise Error.new("Failed to parse geocoding response", code: :parse_geocode_response_failure)
       end
     end
+
+  rescue JSON::ParserError => e
+    # Raise a parse failure error if the response failed to parse. This may happen
+    # when calling response.parsed_response for the first time; See `httparty-0.24.0/lib/httparty/response.rb`
+    raise Error.new("Failed to parse geocoding response: #{e.message}", code: :parse_geocode_response_failure)
   end
 
+  # Centralize rounding logic
   def self.round(num, precision = COORDINATE_PRECISION)
     num.round(precision)
   end

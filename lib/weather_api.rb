@@ -64,6 +64,8 @@ class WeatherApi < BaseApi
   def handle_api_error(response, message, metadata = {})
     # When the OpenWeatherMap API returns an error, they return it as json containing a message:
     # { "cod": 401, "message": "Invalid API key. Please see https://openweathermap.org/faq#error401 for more info." }
+    #
+    # So we wrap the message to contain both our internal error message and theirs
     begin
       parsed_response = response.parsed_response
       raise Error.new("#{message}: #{parsed_response["message"]}", **metadata)
