@@ -81,6 +81,8 @@ These attributes are cached via `ForecastService#get_forecast` under a hashed ve
 
 In production, the max_age of the cache is 1 year, so addresses should only need to be geocoded once a year. Ideally they would live in a database, but I was trying to keep things simple.
 
+There are better strategies for generating a cache key from a user-provided address, such as following how USPS formats addresses by replacing common tokens ("street" -> "st", "circle" -> "cir", "florida" -> "fl"). However, it gets complicated with punctuation, since there may be a dash in a unit number ("12-3"). So for now, they cached as provided.
+
 ### 3) Weather response: `weather_data` (hash)
 
 `WeatherApi#get_weather` returns the following `weather_data` and returns it to the controller:
