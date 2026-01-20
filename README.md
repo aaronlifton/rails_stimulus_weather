@@ -62,7 +62,7 @@ Frontend
 
 ### 2) Geocoding result: `address_data` (hash)
 
-`GeocoderApi#geocode` returns the following `address_data`:
+`GeocoderApi#geocode` returns the following `address_data` based on data from the US Census API:
 
 ```json
 {
@@ -77,11 +77,7 @@ Frontend
 - `zipcode`: string; census API may omit it based on address (see [Census API
   docs](https://geocoding.geo.census.gov/geocoder/Geocoding_Services_API.html))
 
-These attributes are cached via `ForecastService#get_forecast` under a hashed version of the user's address to speed up the user's request, since the lat, long, and zipcode will never change over time.
-
-In production, the max_age of the cache is 1 year, so addresses should only need to be geocoded once a year. Ideally they would live in a database, but I was trying to keep things simple.
-
-There are better strategies for generating a cache key from a user-provided address, such as following how USPS formats addresses by replacing common tokens ("street" -> "st", "circle" -> "cir", "florida" -> "fl"). However, it gets complicated with punctuation, since there may be a dash in a unit number ("12-3"). So for now, they cached as provided.
+Ideally the service would have a [Nominatim](https://nominatim.org/release-docs/5.2/) instance which would be faster than the US Census API.
 
 ### 3) Weather response: `weather_data` (hash)
 
