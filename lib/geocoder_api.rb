@@ -54,30 +54,35 @@ class GeocoderApi < BaseApi
         zipcode: address["addressComponents"]["zip"]
       }
     else
-      if response.parsed_response
-        # E.g. ["Address cannot be empty and cannot exceed 100 characters"]
-        reasons = response.parsed_response.dig("errors")
-        if reasons
-          # Here we pass Census API error messages as reasons, meant for debugging
-          raise Error.new("Failed to geocode address", reasons: reasons, code: :geocode_address_errors)
+      Rails.logger.tagged("GeocoderApi") do
+        if response.parsed_response
+          # E.g. ["Address cannot be empty and cannot exceed 100 characters"]
+          reasons = response.parsed_response.dig("errors")
+          if reasons
+            # Here we pass Census API error messages as reasons, meant for debugging
+            Rails.logger.error("Failed to geocode address '#{address}', reasons: #{reasons.inspect}")
+            raise Error.new("Failed to geocode address", reasons: reasons, code: :geocode_address_errors)
+          else
+            # If the Census API didn't provide any reasons for the error, we mark
+            # it as unknown
+            Rails.logger.error("Failed to geocode address '#{address}', no reasons given")
+            raise Error.new("Failed to geocode address")
+          end
         else
-          # If the Census API didn't provide any reasons for the error, we mark
-          # it as unknown
-          raise Error.new("Failed to geocode address", code: :unknown_error)
-        end
-      else
-        # HTTParty a nil `parsed_response` if the encoding is invalid, or
-        # if there's other non-parser issues; See `httparty-0.24.0/lib/httparty/parser.rb:107`
+          # HTTParty a nil `parsed_response` if the encoding is invalid, or
+          # if there's other non-parser issues; See `httparty-0.24.0/lib/httparty/parser.rb:107`
 
-        # Raise a parse failure if the response was not able to be parsed
-        raise Error.new("Failed to parse geocoding response", code: :parse_geocode_response_failure)
+          # Raise a parse failure if the response was not able to be parsed
+          Rails.logger.error("Failed to parse geocoding response")
+          raise Error.new("Failed to parse geocoding response")
+        end
       end
     end
 
   rescue JSON::ParserError => e
     # Raise a parse failure error if the response failed to parse. This may happen
     # when calling response.parsed_response for the first time; See `httparty-0.24.0/lib/httparty/response.rb:37`
-    raise Error.new("Failed to parse geocoding response: #{e.message}", code: :parse_geocode_response_failure)
+    raise Error.new("Failed to parse geocoding response: #{e.message}")
   end
 
   # Centralize rounding logic

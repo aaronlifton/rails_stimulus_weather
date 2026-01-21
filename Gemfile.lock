@@ -419,6 +419,7 @@ DEPENDENCIES
   importmap-rails
   jbuilder
   kamal
+  logger (~> 1.7)
   propshaft
   puma (>= 5.0)
   rails (~> 8.1.2)

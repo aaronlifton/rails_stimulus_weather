@@ -55,8 +55,10 @@ RSpec.describe ForecastsController, type: :request do
     expect(response.parsed_body).to(
       eq(
         {
-          "error" => "address parameter is required",
-          "code" => "address_required"
+          "error" => {
+            "code" => "address_required",
+            "message" => "Address parameter is required"
+          }
         }
       )
     )
@@ -232,9 +234,8 @@ RSpec.describe ForecastsController, type: :request do
           eq(
             {
               "error" => {
-                "message" => "Failed to geocode address",
-                "code" => "geocode_address_errors",
-                "reasons" => ["Address cannot be empty and cannot exceed 100 characters"]
+                "message" => "Forecast failed",
+                "code" => "geocode_address_errors"
               }
             }
           )
@@ -268,15 +269,22 @@ RSpec.describe ForecastsController, type: :request do
       end
 
       it "returns a json error response" do
+        allow(Rails.logger).to(receive(:error).and_call_original)
+        expect(Rails.logger)
+          .to(
+            receive(:error).with(
+              "Forecast failed: Error fetching weather data"
+            )
+          )
+
         perform_request
 
         expect(response.parsed_body).to(
           eq(
             {
               "error" => {
-                "message" => "Error fetching weather data: Invalid API key. Please see https://openweathermap.org/faq#error401 for more info.",
-                "code" => "weather_api_error",
-                "reasons" => []
+                "message" => "Forecast failed",
+                "code" => "unknown_error"
               }
             }
           )

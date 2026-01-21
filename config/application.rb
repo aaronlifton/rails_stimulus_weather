@@ -23,5 +23,11 @@ module WeatherApp
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
+
+    config.logger = ActiveSupport::TaggedLogging.new(
+      ActiveSupport::Logger
+        .new(STDOUT)
+        .tap { |logger| logger.formatter = ::Logger::Formatter.new }
+    )
   end
 end

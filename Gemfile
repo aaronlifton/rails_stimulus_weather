@@ -81,3 +81,5 @@ gem "rspec-rails", "~> 8.0"
 # Frontend
 gem "tailwindcss-rails", "~> 4.4"
 gem "stimulus-rails"
+
+gem "logger", "~> 1.7"

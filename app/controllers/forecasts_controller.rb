@@ -8,7 +8,10 @@ class ForecastsController < ApplicationController
         # Address is required for getting the user's weather forecast
         address = index_params[:address]
         unless address.present?
-          return render(json: {error: "address parameter is required", code: :address_required}, status: :bad_request)
+          return render(
+            json: {error: {message: "Address parameter is required", code: :address_required}},
+            status: :bad_request
+          )
         end
 
         begin
@@ -16,13 +19,20 @@ class ForecastsController < ApplicationController
         rescue BaseApi::Error => e
           # Handle known service class errors, that have frontend recognizable codes and possibly reasons.
           # Service class errors extend BaseApi::Error, so they are all rescued here.
+          Rails.logger.error("Forecast failed: #{e.message}")
+
           return render(
-            json: {error: {message: e.message, code: e.code, reasons: e.reasons || []}},
+            json: {error: {message: "Forecast failed", code: e.code || :unknown_error}},
             status: :internal_server_error
           )
         rescue StandardError => e
           # Catch-all for unknown errors
-          return render(json: {error: {message: e.message, code: :unknown_error}}, status: :internal_server_error)
+          Rails.logger.error("Forecast ran into an unknown error: #{e.message}")
+
+          return render(
+            json: {error: {message: "Forecast failed", code: :unknown_error}},
+            status: :internal_server_error
+          )
         end
 
         render(json: forecast, status: :ok)

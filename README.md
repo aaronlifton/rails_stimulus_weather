@@ -114,13 +114,13 @@ Returns a `code` so the frontend can handle user-friendly error messages, and
 {
   "error": {
     "message": "API Error",
-    "code": "address_required",
+    "code": "geocode_address_error",
     "reasons": []
   }
 }
 ```
 
-- `message`: non user-friendly backend error message
+- `message`: description of backend error message
 - `code`: symbolic error code for UI presentation of backend errors
 - `reasons`: optional list (for API error messages)
 

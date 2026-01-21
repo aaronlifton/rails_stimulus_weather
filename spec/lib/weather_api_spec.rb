@@ -148,13 +148,11 @@ RSpec.describe WeatherApi do
     end
 
     it "handles the api error" do
-      begin
-        weather_api.get_weather(address_data)
-      rescue StandardError => e
-        expect(e.class).to(eq(described_class::Error))
-        expect(e.message).to(include("Invalid API key"))
-        expect(e.code).to(eq(:weather_api_error))
-      end
+      expect(Rails.logger).to(receive(:error).with(include("Invalid API key")))
+
+      expect { weather_api.get_weather(address_data) }.to(
+        raise_error(described_class::Error, include("Error fetching weather data"))
+      )
     end
   end
 
@@ -184,13 +182,9 @@ RSpec.describe WeatherApi do
     end
 
     it "handles the api error" do
-      begin
-        weather_api.get_weather(address_data)
-      rescue StandardError => e
-        expect(e.class).to(eq(described_class::Error))
-        expect(e.message).to(include("Unable to parse"))
-        expect(e.code).to(eq(:weather_api_error))
-      end
+      expect { weather_api.get_weather(address_data) }.to(
+        raise_error(described_class::Error, include("Unable to parse"))
+      )
     end
   end
 end

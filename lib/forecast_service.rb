@@ -12,7 +12,10 @@ class ForecastService
       # addresses.
       cached_data = Rails.cache.read("forecast/#{zipcode}")
       # The "cached" tag is used by the frontend
-      return cached_data.merge({cached: true}) if cached_data.present?
+      if cached_data.present?
+        Rails.logger.info("Retrieved weather data for cache for #{zipcode}")
+        return cached_data.merge({cached: true})
+      end
 
       # Errors from #get_weather should be handled by the caller (rescue BaseApi::Error)
       WeatherApi.new.get_weather(address_data)
